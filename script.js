@@ -238,6 +238,39 @@ function classifySatQuery(query) {
 }
 
 function setAnalysisValue(id, value) { const element = $(id); if (element) element.textContent = value || "—"; }
+
+function renderQueryOverlay(result) {
+    if (!result?.locationData || typeof mainMap === "undefined") return;
+    const center = [result.locationData.lat, result.locationData.lon];
+    const lat = result.locationData.lat;
+    const lon = result.locationData.lon;
+    const existing = window.satqueryAutoOverlay;
+    if (existing) mainMap.removeLayer(existing);
+    $$(".overlay-option input").forEach((input) => { input.checked = false; });
+
+    let layer = null;
+    if (result.feature === "Vegetation") {
+        layer = L.circle(center, { radius: 9000, fillColor: "#55efad", fillOpacity: .24, color: "#55efad", weight: 2 }).bindPopup("<strong>AI Vegetation Overlay</strong><br>Query-driven vegetation analysis area.");
+        $("#vegetationOverlay") && ($("#vegetationOverlay").checked = true);
+    } else if (result.feature === "Built-up Area") {
+        layer = L.rectangle([[lat - .045, lon - .055], [lat + .045, lon + .055]], { fillColor: "#ffb45e", fillOpacity: .24, color: "#ffb45e", weight: 2 }).bindPopup("<strong>AI Built-up Overlay</strong><br>Query-driven urban change analysis area.");
+        $("#builtupOverlay") && ($("#builtupOverlay").checked = true);
+    } else if (result.feature === "Water") {
+        layer = L.circle(center, { radius: 6500, fillColor: "#40e7ff", fillOpacity: .24, color: "#40e7ff", weight: 2 }).bindPopup("<strong>AI Water Overlay</strong><br>Query-driven water change analysis area.");
+        $("#waterOverlay") && ($("#waterOverlay").checked = true);
+    } else if (result.feature === "Geology / Terrain") {
+        layer = L.polygon([[lat + .05, lon - .06], [lat + .08, lon + .04], [lat - .02, lon + .07], [lat - .07, lon - .01], [lat - .03, lon - .08]], { fillColor: "#b36cff", fillOpacity: .24, color: "#b36cff", weight: 2 }).bindPopup("<strong>AI Geological Overlay</strong><br>Query-driven geological feature analysis area.");
+        $("#geologyOverlay") && ($("#geologyOverlay").checked = true);
+    } else if (result.isCompare) {
+        layer = L.rectangle([[lat - .055, lon - .07], [lat + .055, lon + .07]], { fillColor: "#ff6b6b", fillOpacity: .16, color: "#ff6b6b", weight: 2, dashArray: "6 5" }).bindPopup("<strong>AI Change Detection</strong><br>Query-driven temporal change analysis area.");
+    }
+    if (layer) {
+        layer.addTo(mainMap);
+        window.satqueryAutoOverlay = layer;
+        layer.openPopup();
+    }
+}
+
 function renderSatQueryAnalysis(result) {
     setAnalysisValue("#aiIntent", result.intent);
     setAnalysisValue("#aiLocation", result.location);
@@ -253,7 +286,10 @@ function renderSatQueryAnalysis(result) {
     setAnalysisValue("#observationValue", result.timeRange);
     if ($("#vlmStatus")) $("#vlmStatus").textContent = "Analysis complete";
     if ($("#vlmDescription")) $("#vlmDescription").textContent = `${result.analysis} prepared for ${result.location}.`;
-    if (result.locationData) moveMap(result.locationData.lat, result.locationData.lon, result.locationData.name);
+    if (result.locationData) {
+        moveMap(result.locationData.lat, result.locationData.lon, result.locationData.name);
+        renderQueryOverlay(result);
+    }
 }
 function validateSatQuery(query) {
     if (!query || !query.trim()) return "Please enter a satellite or geospatial question.";
