@@ -2788,3 +2788,38 @@ select:focus-visible {
     }
 }
 
+
+/* =========================================================
+   SATQUERY FLOW ENHANCEMENTS
+   ========================================================= */
+
+.query-understanding-panel,
+.vlm-panel,
+.evidence-panel {
+    transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+}
+
+.ai-panel.processing {
+    border-color: rgba(64, 231, 255, .38);
+    box-shadow: 0 0 30px rgba(64, 231, 255, .08);
+}
+
+.analysis-item strong,
+.result-card strong,
+.evidence-grid strong {
+    overflow-wrap: anywhere;
+}
+
+.typing-indicator[hidden] {
+    display: none !important;
+}
+
+.query-input-wrap textarea,
+.chat-composer textarea {
+    resize: vertical;
+}
+
+.map-api-note {
+    pointer-events: none;
+}
+
