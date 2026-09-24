@@ -4,7 +4,8 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 const views = { overview: "overviewView", map: "mapView", compare: "compareView", chat: "chatView" };
-const SATQUERY_API_URL = window.SATQUERY_API_URL || "";
+const SATQUERY_API_URL =
+    window.SATQUERY_API_URL || "http://127.0.0.1:8000/api/query";
 let lastSatQuery = null;
 
 function showView(viewName) {
@@ -303,10 +304,41 @@ async function callSatQueryBackend(payload) {
     return response.json();
 }
 function applyBackendResult(data, fallback) {
-    const result = { ...fallback, ...(data?.analysis || data || {}) };
-    if (data?.result) addMessage(escapeHtml(data.result));
-    else if (data?.answer) addMessage(escapeHtml(data.answer));
+    const result = {
+        ...fallback,
+
+        intent: data?.intent
+            ? data.intent.replaceAll("_", " ")
+            : fallback.intent,
+
+        location: data?.region || fallback.location,
+
+        feature:
+            data?.intent === "vegetation_change"
+                ? "Vegetation"
+                : fallback.feature,
+
+        analysis:
+            data?.analysis?.metric || fallback.analysis,
+
+        timeRange:
+            data?.analysis?.period || fallback.timeRange,
+
+        confidence:
+            data?.confidence != null
+                ? `${Math.round(data.confidence * 100)}%`
+                : fallback.confidence,
+
+        backendExplanation:
+            data?.explanation || ""
+    };
+
+    if (data?.explanation) {
+        addMessage(escapeHtml(data.explanation));
+    }
+
     renderSatQueryAnalysis(result);
+
     return result;
 }
 async function runSatQueryPipeline(query) {
@@ -322,7 +354,9 @@ async function runSatQueryPipeline(query) {
     const result = classifySatQuery(cleanQuery);
     lastSatQuery = { query:cleanQuery, ...result, timestamp:new Date().toISOString() };
     try {
-        const payload = { query:cleanQuery, intent:result.intent, location:result.location, feature:result.feature, time_range:result.timeRange, analysis:result.analysis, coordinates:result.coordinates };
+        const payload = {
+    query: cleanQuery
+};
         const backendResult = await callSatQueryBackend(payload);
         if (backendResult) applyBackendResult(backendResult, result);
         else {
